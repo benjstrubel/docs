@@ -1,5 +1,5 @@
 {
-  "openapi": Y"v1_oas.yaml",
+  "openapi": "v1_oas.yaml",
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Mint Starter Kit",
