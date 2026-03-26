@@ -1,0 +1,544 @@
+openapi: "3.0.0"
+info:
+  title: Stmt.ai API
+  version: '1.0'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    financials:
+      type: object
+      properties:
+        adsh:
+          type: string
+          description: "Accession number in XXXXXXXXXX-XX-XXXXXX format"
+        cik:
+          type: integer
+          description: "CIK code as a non-zero padded string."
+        name:
+          type: string
+          description: "Company name."
+        sic:
+          type: integer
+          description: "Four digit Standard Industry Classification code."
+        form:
+          type: string
+          description: "Financial filing form type, usually 10-K, 10-Q, or 20-F"
+        period:
+          type: string
+          description: "End date for the period the filing covers."
+        fy:
+          type: integer
+          description: "Four digit fiscal year."
+        filed:
+          type: string
+          description: "Date the form was filed."
+        accepted:
+          type: string
+          description: "Date the SEC accepted the filing."
+        statements:
+          type: object
+          properties:
+            BS :
+              type: array
+              items:
+                $ref: '#/components/schemas/lineitem'
+            IS :
+              type: array
+              items:
+                $ref: '#/components/schemas/lineitem'
+            CF :
+              type: array
+              items:
+                $ref: '#/components/schemas/lineitem'
+    lineitem:
+      type: object
+      properties:
+        tag:
+          type: string
+          description: "The tag for the line item as specified by the filer."
+        label:
+          type: string
+          description: "The preferred label of the line item."
+        line:
+          type: integer
+          description: "Line item number."
+        uom:
+          type: string
+          description: "Unit of measure (the currency of the value)"
+        value:
+          type: number
+          description: "Value of the line item."
+        version:
+          type: string
+          description: "Accounting standards version of the line item."
+    submissions:
+      type: array
+      items:
+        $ref: '#/components/schemas/submission'
+    submission:
+      type: object
+      properties:
+        ticker:
+          type: string
+          description: "Company ticker symbol on the date of the filing."
+        name:
+          type: string
+          description: "Company name."
+        symbol:
+          type: string
+          description: "Ticker symbol."
+        cik:
+          type: string
+          description: "Non zero padded Central Index Key."
+        sic:
+          type: integer
+          description: "Four digit Standard Industrial Classification Code."
+        adsh:
+          type: string
+          description: "Accession number in XXXXXXXXXX-XX-XXXXXX format."
+        fy:
+          type: integer
+          description: "Four digit fiscal year."
+        form:
+          type: string
+          description: "Financial filing form type, usually 10-K, 10-Q, or 20-F"
+        period:
+          type: string
+          description: "End date for the period the filing covers."
+        filed:
+          type: string
+          description: "Date the form was filed."
+        accepted:
+          type: string
+          description: "Date the SEC accepted the filing."
+servers:
+    - url: https://tvys8gnpod.execute-api.us-east-2.amazonaws.com/test/
+      description: Test server
+paths:
+  /company:
+    get:
+      summary: "General information about a company."
+      description: "
+          
+          ## Basic Company Information
+          
+          General information about one or more companies.
+          Data includes:
+          
+          * Company name
+          * Headquarters address
+          * Federal EIN or tax id
+          * SIC code
+          * CIK
+          * Ticker symbol(s)
+          * Sector
+          * Exchange
+          * State or province of incorporation
+          * Fiscal year end
+        "
+      parameters :
+        - in: query
+          name: ticker
+          schema:
+            type : string
+          description : "Ticker symbol of company"
+          required: false
+      responses:
+        '200':
+          description: OK
+          content :
+            application/json:
+              schema:
+                type : object
+                properties:
+                  ticker:
+                    type: string
+                    description: "Company ticker symbol."
+                  name:
+                    type: string
+                    description: "Name of the company."
+                  cik:
+                    type: integer
+                    description: "Central Index Key code as non zero padded integer."
+                  ein:
+                    type: integer
+                    description: "Federal EIN at the time of the filing."
+                  sector:
+                    type: string
+                    description: "Assigned Global Industry Classification Standard sector at the time of the filing."
+                  exchange:
+                    type: string
+                    description: "Exchange the stock trades on."
+                  sic:
+                    type: integer
+                    description: "Assigned four digit Standard Industrial Classification code at the time of the filing."
+                  country:
+                    type: string
+                    description: "Headquarters country."
+                  address1:
+                    type: string
+                    description: "Street address line 1."
+                  address2:
+                    type: string
+                    description: "Street address line 2."
+                  city:
+                    type: string
+                    description: "City."
+                  state:
+                    type: string
+                    description : "State, province, or equivalent."
+                  zipcode:
+                    type: string
+                    description: "Zipcode, postal code, or equivalent."
+                  state_of_incorporation:
+                    type: string
+                    description: "Two letter abbreviation of the state or province of incorporation."
+                  fye:
+                    type: string
+                    description: "Fiscal year end in mmdd format."
+              example:
+                {
+                  "ticker": "AAPL",
+                  "name": "APPLE INC",
+                  "cik": 320193,
+                  "ein": 942404110,
+                  "sector": "Information Technology",
+                  "sic": 3571,
+                  "country": "US",
+                  "address1": "ONE APPLE PARK WAY",
+                  "address2": "",
+                  "city": "CUPERTINO",
+                  "state": "CA",
+                  "zipcode": "95014",
+                  "state_of_incorporation" : "DE",
+                  "fye" : "1231"
+                }
+  /tickers:
+    get:
+      summary: "List of all supported tickers."
+      description: "
+        List of all active tickers that have financial information available.
+        "
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                ["A","AAPL","ABNB","ABBV","ABT"]
+  /submissions:
+    get:
+      summary: "SEC EDGAR submissions"
+      description: "
+        Get a list of all SEC EDGAR submissions by CIK or ticker symbol.
+        
+        The list can optionally be filtered by form type.
+        "
+      parameters:
+        - in: query
+          name: params
+          description: "One of cik or ticker and optionally a form."
+          style: form
+          explode: true
+          schema:
+            type: object
+            properties:
+              cik:
+                type: string
+                description: "Non zero padded Central Index Key number."
+              ticker:
+                type: string
+                description: "Ticker symbol."
+              form:
+                type: string
+                enum: [ '10-K','10-Q','20-F' ]
+                description: "SEC Edgar Form(s)"
+            anyOf:
+              - required: [cik]
+              - required: [ticker]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/submission'
+  /statistics:
+    get:
+      summary: "Common current financial statistics for a company."
+      description: "
+        Get all of the current common financials statistics for a company."
+      parameters:
+        - in: query
+          name: ticker
+          schema:
+            type : string
+          description : "Ticker symbol of company"
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                {
+                  'date' : '2025-01-17',
+                  'statistics' : {
+                                   'beta': '1.24',
+                                   'bookValue': '3.767',
+                                   'dividendYield': '0.0044',
+                                   'ebitda': '134660997120'
+                  }
+                }
+  /statistics/statistic:
+    get:
+      summary: "Historical financial statistics."
+      description: "
+        Get the historical values for a given financial statistic for a company.
+        
+        E.g. Get the P/E ratio for Apple (AAPL) for the past three years.
+        "
+      parameters:
+        - in: query
+          name: params
+          description: "ticker, measure, and optionally start and/or end dates."
+          style: form
+          explode: true
+          schema:
+            type: object
+            properties:
+              ticker:
+                type: string
+                description: "Ticker symbol."
+              measure:
+                type: string
+                description: "The statistical measure requested."
+              startDate:
+                type: string
+                description: "Start date in yyyy-mm-dd format."
+              endDate:
+                type: string
+                description: "End date in yyyy-mm-dd format."
+            anyOf:
+              - required: [ticker, measure]
+      responses :
+        '200' :
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                {
+                  'ticker' : 'AAPL',
+                  'measure' : 'forwardPE',
+                  'data': {
+                    '2021-07-29': '27.29',
+                    '2021-08-12': '27.60',
+                    '2021-08-13': '27.85'
+                  }
+                }
+  /financials:
+    get:
+      summary : "Financial statements as filed"
+      description: "
+        # Financial Statements As Filed
+        
+        Get the financial statements for a given company as filed. The financial statements are returned using
+        the line item tags and presentation specified by the company in their filings. The filings may contain
+        non-standard tags, non-GAAP tags, custom ordering, and other differences. If you wish to compare financial
+        statements across companies or multiple years using the standardized financial statements is recommended.
+        "
+      parameters:
+        - in: query
+          name: params
+          description:  "One of adsh, or cik, or ticker and optionally a startDate, endDate, and/or timePeriod."
+          style: form
+          explode: true
+          schema:
+            type: object
+            properties:
+              adsh:
+                type: string
+                description: "Accession number in XXXXXXXXXX-XX-XXXXXX format."
+              cik:
+                type: integer
+                description: "Central Index Key as non zero padded number."
+              ticker:
+                type: string
+                description: "Ticker symbol."
+              startDate:
+                type: string
+                format: date
+                description: "Start date in yyyy-mm-dd format."
+              endDate:
+                type: string
+                format: date
+                description: "End date in yyy-mm-dd format."
+              timePeriod:
+                type: string
+                enum: [ 'annual','interim','both' ]
+                description: "Financial time period type, either annual, interim (quarterly or semi annual), or both."
+            anyOf:
+              - required: [ adsh ]
+              - required: [ cik ]
+              - required: [ ticker ]
+      responses :
+        '200' :
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/financials'
+              example:
+                {
+                  'adsh': '0001652044-23-000016',
+                  'cik': '1652044',
+                  'name': 'ALPHABET INC.',
+                  'sic': '7370.0',
+                  'form': '10-K',
+                  'period': '2022-12-31',
+                  'fy': 2022,
+                  'filed': '2023-02-03',
+                  'accepted': '2023-02-02',
+                  'statements':
+                    {
+                      'BS' : [
+                        {
+                          'tag' : 'CashAndCashEquivalentsAtCarryingValue',
+                          'version' : 'us-gaap/2022',
+                          'uom' : 'USD',
+                          'value' : 21879000000.0,
+                          'line' : 3,
+                          'label' : 'Cash and cash equivalents'
+                      }],
+                      'IS' : [
+                        {
+                          'tag' : 'RevenueFromContractWithCustomerExcludingAssessedTax',
+                          'version': 'us-gaap/2022',
+                          'uom': 'USD',
+                          'value': 282836000000.0,
+                          'line': 1,
+                          'label': 'Revenues'
+                        }],
+                      'CF' : [
+                        {
+                          'tag' : 'NetCashProvidedByUsedInOperatingActivities',
+                          'version': 'us-gaap/2022',
+                          'uom': 'USD',
+                          'value': 91495000000.0,
+                          'line': 18,
+                          'label': 'Net cash provided by operating activities'
+                        }]
+                    }
+                }
+  /financials/standardized:
+    get:
+      summary : "Standardized financial statements."
+      description: "
+        # Standardized Financial Statements
+        
+        Standardized financial statements that are comparable across companies and time periods.
+        The financial statements are presented using the same set of standardized tags. Financials are
+        standardized according to company type.
+        
+        Standardized types are:
+        * Operating
+        * Financial (Deposit Based Operations)
+        * Financial (Insurance Based Operations)
+        * Real Estate including REITs
+        
+        "
+      parameters:
+        - in: query
+          name: params
+          description: "One of adsh, or cik, or ticker and optionally a startDate, endDate, and/or timePeriod."
+          style: form
+          explode: true
+          schema:
+            type: object
+            properties:
+              adsh:
+                type: string
+                description: "Accession number in XXXXXXXXXX-XX-XXXXXX format."
+              cik:
+                type: integer
+                description: "Central Index Key as non zero padded number."
+              ticker:
+                type: string
+                description: "Ticker symbol."
+              startDate:
+                type: string
+                format: date
+                description: "Start date in yyyy-mm-dd format."
+              endDate:
+                type: string
+                format: date
+                description: "End date in yyy-mm-dd format."
+              timePeriod:
+                type: string
+                enum: [ 'annual','interim','both' ]
+                description: "Financial time period type, either annual, interim (quarterly or semi annual), or both."
+            anyOf:
+              - required : [adsh]
+              - required : [cik]
+              - required : [ticker]
+      responses :
+        '200' :
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /company/peers:
+    get:
+      summary: "Get a list of peer group companies for a given company"
+      description: "
+        #SIC Peer Groups
+        
+        Get a list of peer group companies defined by SIC for a given company.
+        
+        Peer groups can be defined by division, major group, industry group, or industry
+        * division: The first digit of the SIC
+        * major group: The first two digits of the SIC
+        * industry group: The first three digits of the SIC
+        * industry: The full four digit SIC
+        
+        "
+      parameters:
+        - in: query
+          name: params
+          description: "Ticker and type [division, majorgroup, industrygroup, or industry]"
+          style: form
+          explode : true
+          schema:
+            type: object
+            properties:
+              ticker:
+                description: "The ticker of the company you wish to get the peer group list for."
+                type: string
+              type:
+                description: "The type of peer group division, majorgroup, industrygroup, or industry."
+                type: string
+                enum: ['division','majorgroup','industrygroup','industry']
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
